@@ -1,6 +1,11 @@
 <?php
 
-defined('TYPO3_MODE') || die('Access denied.');
+use ChristianEssl\Youku\Resource\OnlineMedia\Helpers\YoukuHelper;
+use ChristianEssl\Youku\Resource\Rendering\YoukuRenderer;
+use TYPO3\CMS\Core\Resource\Rendering\RendererRegistry;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
+defined('TYPO3') || die('Access denied.');
 
 call_user_func(
     function () {
@@ -9,13 +14,13 @@ call_user_func(
 
         // Register the online media helper
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['fal']['onlineMediaHelpers']['youku']
-            = \ChristianEssl\Youku\Resource\OnlineMedia\Helpers\YoukuHelper::class;
+            = YoukuHelper::class;
 
         // Register the mime type
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['FileInfo']['fileExtensionToMimeType']['youku'] = 'video/youku';
 
         // Register the renderer for the frontend
-        $rendererRegistry = \TYPO3\CMS\Core\Resource\Rendering\RendererRegistry::getInstance();
-        $rendererRegistry->registerRendererClass(\ChristianEssl\Youku\Resource\Rendering\YoukuRenderer::class);
+        $rendererRegistry = GeneralUtility::makeInstance(RendererRegistry::class);
+        $rendererRegistry->registerRendererClass(YoukuRenderer::class);
     }
 );
