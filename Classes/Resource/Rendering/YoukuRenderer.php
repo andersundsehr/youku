@@ -12,6 +12,8 @@ namespace ChristianEssl\Youku\Resource\Rendering;
  *
  ***/
 
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileReference;
@@ -23,12 +25,18 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 /**
  * Youku renderer class
  */
-class YoukuRenderer implements FileRendererInterface
+class YoukuRenderer implements FileRendererInterface, LoggerAwareInterface
 {
-    /**
-     * @var OnlineMediaHelperInterface
-     */
-    protected $onlineMediaHelper;
+    use LoggerAwareTrait;
+
+    protected ?OnlineMediaHelperInterface $onlineMediaHelper = null;
+
+    protected OnlineMediaHelperRegistry $onlineMediaHelperRegistry;
+
+    public function __construct()
+    {
+        $this->onlineMediaHelperRegistry = GeneralUtility::makeInstance(OnlineMediaHelperRegistry::class);
+    }
 
     /**
      * Returns the priority of the renderer
@@ -52,7 +60,7 @@ class YoukuRenderer implements FileRendererInterface
      */
     public function canRender(FileInterface $file)
     {
-        return ($file->getMimeType() === 'video/youku' || $file->getExtension() === 'youku') && $this->getOnlineMediaHelper($file) !== false;
+        return ($file->getMimeType() === 'video/youku' || $file->getExtension() === 'youku') && $this->getOnlineMediaHelper($file) !== null;
     }
 
     /**
@@ -69,9 +77,9 @@ class YoukuRenderer implements FileRendererInterface
                 $orgFile = $orgFile->getOriginalFile();
             }
             if ($orgFile instanceof File) {
-                $this->onlineMediaHelper = OnlineMediaHelperRegistry::getInstance()->getOnlineMediaHelper($orgFile);
+                $this->onlineMediaHelper = $this->onlineMediaHelperRegistry->getOnlineMediaHelper($orgFile);
             } else {
-                $this->onlineMediaHelper = false;
+                $this->onlineMediaHelper = null;
             }
         }
         return $this->onlineMediaHelper;
@@ -159,7 +167,12 @@ class YoukuRenderer implements FileRendererInterface
             $orgFile = $file;
         }
 
-        return $this->getOnlineMediaHelper($file)->getOnlineMediaId($orgFile);
+        $helper = $this->getOnlineMediaHelper($file);
+        if ($helper === null) {
+            $this->logger?->error('No online media helper found for file with uid ' . $file->getUid());
+            return '';
+        }
+        return $helper->getOnlineMediaId($orgFile);
     }
 
     /**
